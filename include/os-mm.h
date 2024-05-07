@@ -77,6 +77,8 @@ struct memphy_struct {
    int rdmflg;
    int cursor;
 
+   int pid_hold;
+
    /* Management structure */
    struct framephy_struct *free_fp_list;
    struct framephy_struct *used_fp_list;
