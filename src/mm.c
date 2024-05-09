@@ -156,8 +156,9 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
    {  // ERROR CODE of obtaining somes but not enough frames
       // MEMPHY_put_freefp to take back free frames
       // delete all framephy_struct in newfp_list
-      int vicpgn, swpfpn;
-      if (find_victim_page(caller->mm, &vicpgn) == -1 || MEMPHY_put_freefp(caller->active_mswp, &swpfpn) == -1) 
+      int vicpgn;
+      int swpfpn = -1;
+      if (find_victim_page(caller->mm, &vicpgn) == -1 || MEMPHY_put_freefp(caller->active_mswp, swpfpn) == -1) 
       {
         while (newfp_str != NULL)
         {

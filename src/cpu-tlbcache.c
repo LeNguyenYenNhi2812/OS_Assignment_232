@@ -19,7 +19,6 @@
 
 #include "mm.h"
 #include <stdlib.h>
-#include <stdio.h>
 
 #define init_tlbcache(mp,sz,...) init_memphy(mp, sz, (1, ##__VA_ARGS__))
 
@@ -30,28 +29,22 @@
  *  @pgnum: page number
  *  @value: obtained value
  */
-int tlb_cache_read(struct pcb_t* proc, struct memphy_struct * mp, int pid, int pgnum, BYTE* value) {
+int tlb_cache_read(struct memphy_struct * mp, int pid, int pgnum, BYTE value)
+{
    /* TODO: the identify info is mapped to 
     *      cache line by employing:
     *      direct mapped, associated mapping etc.
     */
-   if(mp == NULL){
-      return -1;
-   } 
-   // Directed mapping for simplicity
-   uint32_t tlbIndex = (uint32_t)(pid ^ pgnum) % mp->maxsz;
-   if(mp->storage[tlbIndex] == -1){
-      //* do not have that entry in tlb, fail to read
-      //* update the tlb entries outside this function
+   int index = (pid / 3) * 1000 + (pgnum % PAGING_PAGESZ + (pid % 3) * 300);
+   if(index > mp->maxsz) return -1;
+   //TLBMEMPHY_read(mp, index, &value);
+   if(mp->storage[index] != -1) {
+      return index;
+   }
+   else {
       return -1;
    }
-   //* checking pid
-   if(pid != mp->pid_hold){
-      tlb_flush_tlb_of(proc, mp);
-      return 0;
-   }
-   *value = mp->storage[tlbIndex];
-   //* value 32-bit
+
    return 0;
 }
 
@@ -62,25 +55,23 @@ int tlb_cache_read(struct pcb_t* proc, struct memphy_struct * mp, int pid, int p
  *  @pgnum: page number
  *  @value: obtained value
  */
-int tlb_cache_write(struct pcb_t* proc, struct memphy_struct *mp, int pid, int pgnum, BYTE value)
+int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
 {
    /* TODO: the identify info is mapped to 
     *      cache line by employing:
     *      direct mapped, associated mapping etc.
     */
-   if(mp == NULL){
-         return -1;
-      }
-   if(pid != mp->pid_hold){
-      tlb_flush_tlb_of(proc, mp);
-      //* update pid hold
-      mp->pid_hold = pid;
-      // return 0;
+   int index = (pid / 3) * 1000 + (pgnum % PAGING_PAGESZ + (pid % 3) * 300);
+   if(value != -1) {
+      if(index > mp->maxsz) return -1;
+      mp->storage[index] = value;
    }
-   uint32_t address = (uint32_t)(pid ^ pgnum) % mp->maxsz;
-   mp->storage[address] = value;
-   return 0;
+   else {
+      if(index > mp->maxsz) return -1;
+      mp->storage[index] = -1;
+   }
 
+   return 0;
 }
 
 /*
@@ -93,8 +84,10 @@ int TLBMEMPHY_read(struct memphy_struct * mp, int addr, BYTE *value)
 {
    if (mp == NULL)
      return -1;
+
    /* TLB cached is random access by native */
    *value = mp->storage[addr];
+
    return 0;
 }
 
@@ -127,11 +120,10 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
    /*TODO dump memphy contnt mp->storage 
     *     for tracing the memory content
     */
-   for (int i = 0; i < mp->maxsz; i++){
-      printf("TLB[%d]: %d\n", i, mp->storage[i]);
-   }
+
    return 0;
 }
+
 
 /*
  *  Init TLBMEMPHY struct
@@ -139,12 +131,10 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
 int init_tlbmemphy(struct memphy_struct *mp, int max_size)
 {
    mp->storage = (BYTE *)malloc(max_size*sizeof(BYTE));
-   for(int i = 0; i < max_size; i++){
-      mp->storage[i] = -1;
-   }
-   mp->pid_hold = 0;
    mp->maxsz = max_size;
-   mp->pid_hold = -1;
+   for(int i = 0; i < max_size; i++){
+   	mp->storage[i] = -1;
+   }
    mp->rdmflg = 1;
 
    return 0;
