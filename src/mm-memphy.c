@@ -6,7 +6,8 @@
 
 #include "mm.h"
 #include <stdlib.h>
-#include <stdio.h>
+#include<stdio.h>
+#include <string.h>
 
 /*
  *  MEMPHY_mv_csr - move MEMPHY cursor
@@ -158,25 +159,21 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 
 int MEMPHY_dump(struct memphy_struct * mp)
 {
-    /*TODO dump memphy contnt mp->storage 
-     *     for tracing the memory content
-     */
-     if (mp == NULL || mp->storage == NULL) {
-      return -1;
-   }
-
-   for (int i = 0; i < mp->maxsz; i++)
+   /*TODO dump memphy contnt mp->storage
+    *
+      for tracing the memory content
+    */
+   for(int i = 0; i < mp->maxsz / 4; ++i)
    {
-      printf("%02X", mp->storage[i]);
-      if ((i + 1) % 16 == 0) 
+      if(mp->storage[i * 4] + mp->storage[i * 4 + 1] +
+         mp->storage[i * 4 + 2] + mp->storage[i * 4 + 3] != 0)
       {
-         printf("\n");
+         printf("%08x: %02x%02x%02x%02x\n", i * 4,
+         mp->storage[i * 4], mp->storage[i * 4 + 1],
+         mp->storage[i * 4 + 2], mp->storage[i * 4 + 3]);
       }
    }
-
-   printf("\n");
-
-    return 0;
+   return 0;
 }
 
 int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)
